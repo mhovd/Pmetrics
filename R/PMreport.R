@@ -565,7 +565,7 @@ makeRdata <- function(wd, remote, reportType = 1) {
     if (reportType == 1) {
       NPAGout <- list(NPdata = PMdata, pop = pop, post = post, final = final, cycle = cycle, op = op, cov = cov, mdata = mdata, errfile = errfile, success = success)
       save(NPAGout, file = "NPAGout.Rdata")
-      #Hacky return to deal with Rservex bug T.T
+      #TODO: Hacky return to deal with Rservex bug T.T
       if (remote) {
         return("ok")
       }

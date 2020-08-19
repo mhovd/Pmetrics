@@ -18,9 +18,27 @@ getPMoptions <- function(opt) {
   PMoptionsFile <- paste(system.file("options", package = "Pmetrics"),"PMoptions.json", sep = "/")
   #if it doesn't exist, create it with defaults
   if (!file.exists(PMoptionsFile)) {
+    baseuuid <- paste(sample(c(letters[1:6],0:9),30,replace=TRUE),collapse="")
+
+    installation_code <- paste(
+        substr(baseuuid,1,8),
+        "-",
+        substr(baseuuid,9,12),
+        "-",
+        "4",
+        substr(baseuuid,13,15),
+        "-",
+        sample(c("8","9","a","b"),1),
+        substr(baseuuid,16,18),
+        "-",
+        substr(baseuuid,19,30),
+        sep="",
+        collapse=""
+    )
     PMopts <- list(sep = ",",
                    dec = ".",
-                   server_address = "http://localhost:5000")
+                   server_address = "http://localhost:5000",
+                   installation_code = installation_code)
     options(PMopts)
     jsonlite::write_json(PMopts, path = PMoptionsFile, auto_unbox=T)
   }
@@ -54,6 +72,7 @@ setPMoptions <- function(sep, dec, server_address) {
   if (!missing(sep)) PMopts$sep <- sep
   if (!missing(dec)) PMopts$dec <- dec
   if (!missing(server_address)) PMopts$server_address <- server_address
+  PMopts$installation_code <- installation_code
   #set the options
   options(PMopts)
   #store the options

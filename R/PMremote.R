@@ -210,3 +210,29 @@ PMlogout <- function(server_address) {
     cat("You are inside the development folder, skipping the registration of the current installation. ")
   }
 }
+
+.send_results_to_server <- function(wd, model_file) {
+  setwd(wd)
+  server_address <- getPMoptions("server_address")
+  installation_code <- getPMoptions("installation_code")
+  api_url <- paste0(server_address, "/api")
+  #Collect the 'model' file inside the inputs folder and the NPAGout.Rdata binary file and send them to the server
+  #The binary file needs to be encoded into base64 before sending it.
+
+  model <- readLines(paste0("inputs/", model_file))
+
+  npagout_file <- file("outputs/NPAGout.Rdata", "rb")
+  npagout_bin <- readBin(npagout_file, "raw", file.info("outputs/NPAGout.Rdata")[1, "size"])
+  output <- base64enc::base64encode(what = npagout_bin)
+  run <- basename(getwd())
+   r <- httr::POST(
+      paste0(api_url, "/register-run"),
+      body = list(
+        model = model,
+        output = output,
+        installation_code = installation_code,
+        run = run),
+    encode = "json",
+    add_headers(api_key = .getApiKey())
+    )
+}
