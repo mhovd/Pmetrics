@@ -37,7 +37,7 @@ getPMoptions <- function(opt) {
     )
     PMopts <- list(sep = ",",
                    dec = ".",
-                   server_address = "http://localhost:5000",
+                   server_address = "http://localhost:3000",
                    installation_code = installation_code)
     options(PMopts)
     jsonlite::write_json(PMopts, path = PMoptionsFile, auto_unbox=T)
@@ -72,7 +72,6 @@ setPMoptions <- function(sep, dec, server_address) {
   if (!missing(sep)) PMopts$sep <- sep
   if (!missing(dec)) PMopts$dec <- dec
   if (!missing(server_address)) PMopts$server_address <- server_address
-  PMopts$installation_code <- installation_code
   #set the options
   options(PMopts)
   #store the options

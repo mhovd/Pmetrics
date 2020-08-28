@@ -215,7 +215,7 @@ PMlogout <- function(server_address) {
   setwd(wd)
   server_address <- getPMoptions("server_address")
   installation_code <- getPMoptions("installation_code")
-  api_url <- paste0(server_address, "/api")
+  api_url <- paste0(server_address, "/api/v0")
   #Collect the 'model' file inside the inputs folder and the NPAGout.Rdata binary file and send them to the server
   #The binary file needs to be encoded into base64 before sending it.
 
@@ -226,7 +226,7 @@ PMlogout <- function(server_address) {
   output <- base64enc::base64encode(what = npagout_bin)
   run <- basename(getwd())
    r <- httr::POST(
-      paste0(api_url, "/register-run"),
+      paste0(api_url, "/register"),
       body = list(
         model = model,
         output = output,

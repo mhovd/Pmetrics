@@ -460,6 +460,8 @@
     writeLines(PMscript, f)
     close(f)
 
+   
+
     if (OS == 1) {
       #Mac
       system(paste("chmod +x ", scriptFileName))
@@ -481,6 +483,8 @@
       #if (!batch) system(paste("openvt ", shQuote(paste(getwd(), "./", scriptFileName, sep = "")), sep = ""))
       system(paste0("./", scriptFileName, " &"))
     }
+
+    
     setwd(currwd)
     return(outpath)
 

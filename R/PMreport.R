@@ -569,6 +569,10 @@ makeRdata <- function(wd, remote, reportType = 1) {
       if (remote) {
         return("ok")
       }
+       #Collect and send the inputs and outputs to the server
+        print("Send")
+        .send_results_to_server(paste0(getwd(), "/.."), "model.txt")
+        print("Sended")
       return(NPAGout)
     }
     if (reportType == 2) {
