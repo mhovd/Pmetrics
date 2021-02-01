@@ -1,3 +1,62 @@
+      SUBROUTINE DIFFEQ
+          RETURN
+      END SUBROUTINE DIFFEQ
+      SUBROUTINE JACOB
+          RETURN
+      END SUBROUTINE JACOB
+      SUBROUTINE DVODE (F, NEQ, Y, T, TOUT, ITOL, RtolIn,
+     & ATOL, ITASK, ISTATE, IOPT, RWORK, LRW, IWORK, LIW,
+     & JAC, MF, RPAR, IPAR)
+          EXTERNAL F
+          integer, intent(IN) :: NEQ
+          double precision, dimension(:), intent(INOUT) :: Y
+          double precision, intent(INOUT) :: T, TOUT
+          integer, intent(IN) :: ITOL
+          double precision, intent(IN) :: RtolIn
+          double precision, dimension(:), intent(IN) :: ATOL
+          integer, intent(IN) :: ITASK
+          integer, intent(INOUT) :: ISTATE
+          integer, intent(IN) :: IOPT
+          double precision, dimension(:), intent(INOUT) :: RWORK
+          integer, intent(IN) :: LRW
+          integer, dimension(:), intent(INOUT) :: IWORK
+          integer, intent(IN) :: LIW
+          EXTERNAL JAC
+          integer, intent(IN) :: MF
+          double precision, dimension(:), intent(INOUT) :: RPAR
+          integer, dimension(:), intent(INOUT) :: IPAR
+          RETURN
+      END SUBROUTINE DVODE
+      SUBROUTINE OUTPUT(T,Y,X,RPAR,IPAR)
+          double precision, intent(in) :: T
+          double precision, dimension(:), intent(inout) :: Y, X
+          double precision, dimension(:), intent(inout) :: rpar
+          integer, dimension(:), intent(inout) :: ipar
+          RETURN
+      END SUBROUTINE OUTPUT
+      SUBROUTINE GETFA(FA,X,P,R,B,INTLIST)
+          double precision, dimension(:), intent(inout) :: FA,X,P,R,B
+          integer, dimension(:), intent(inout) :: intlist
+          RETURN
+      END SUBROUTINE GETFA
+      SUBROUTINE GETIX(N,X,P,R,B,INTLIST)
+          integer, intent(inout) :: N
+          double precision, dimension(:), intent(inout) :: X,P,R,B
+          integer, dimension(:), intent(inout) :: intlist
+          RETURN
+      END SUBROUTINE GETIX
+      SUBROUTINE GETTLAG(TLAG,X,P,R,B,INTLIST)
+          double precision, dimension(:), intent(inout) :: TLAG,X,P,R,B
+          integer, dimension(:), intent(inout) :: intlist
+          RETURN
+      END SUBROUTINE GETTLAG
+      SUBROUTINE ANAL3(X,TIN,TOUT,RPAR,IPAR)
+          double precision, intent(inout), dimension(:) :: X
+          double precision, intent(inout) :: TIN, TOUT
+          double precision, dimension(:), intent(inout) :: rpar
+          integer, dimension(:), intent(inout) :: ipar
+          return
+      END SUBROUTINE ANAL3
       IMPLICIT REAL*8(A-H,O-Z)
 	DIMENSION DOSWGT(200),WEIGHT(200),GENMIN(1),GENMAX(1),
      1  AMOUNT(200),RATE(200),GENVAL(200),SERUMC(200),COV(200,30),
