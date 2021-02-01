@@ -4,7 +4,8 @@
                    indpts, icen, aucint,
                    idelta, prior, xdev, search,
                    auto, intern, silent, overwrite, nocheck, parallel, batch,
-                   alq) {
+                   alq
+                   , remoterun, remoteuser, remoteproject, remotecontact) {
 
   currwd <- getwd() #set the current working directory to go back to it at the end
   if (missing(alq)) alq <- F
@@ -143,7 +144,10 @@
       #prior specified, so choose how
       if (inherits(prior, "NPAG")) { priorString <- c(0, "prior.txt") }
       #prior is an NPdata object
-      if (is.character(prior)) { priorString <- c(0, prior) }
+      if (is.character(prior)) { priorString <- c(0, prior)
+       # wmy I think this is for using named directories
+       # priorDEN <- Sys.glob(paste("..", prior, sep = "/"))[1]
+       }
       #prior is the name of a file
       if (is.numeric(prior)) {
         #prior is a run number
@@ -185,7 +189,8 @@
                    ode = ode, limits = NA, wrkFlag = wrkFlag)
   }
 
-  trans <- makeModel(model = model, data = data, engine = engine, write = T, silent = silent)
+  trans <- makeModel(model = model, data = data, engine = engine
+  , write = T, silent = silent)
 
   if (trans$status == -1) endNicely(trans$msg, model, data) #error
   if (trans$status == 0) {
@@ -237,9 +242,22 @@
   if (parallel) { prefix <- "p" } else { prefix <- "s" }
   #add the correct switch for NPAG engine, always serial for IT2B and ERR
   prepfiles <- shQuote(normalizePath(list.files(fortSource,
-                                                pattern = switch(type, NPAG = "sNPprep", IT2B = "sITprep", ERR = "sITprep"), full.names = T)))
+    pattern = switch(type, NPAG = "sNPprep", IT2B = "sITprep"
+    , ERR = "sITprep"), full.names = T)))
   enginefiles <- shQuote(normalizePath(list.files(fortSource,
-                                                  pattern = switch(type, NPAG = paste(prefix, "NPeng", sep = ""), IT2B = "sITeng", ERR = "sITerr"), full.names = T)))
+    pattern = switch(type, NPAG = paste(prefix, "NPeng", sep = "")
+    , IT2B = "sITeng", ERR = "sITerr"), full.names = T)))
+
+  # wmy2017Oct13 -- create the ODE "engine"
+  ODEsolver <- shQuote(normalizePath(list.files(fortSource,
+         pattern = paste(prefix, "ODEsolver", sep = ""), full.names = T)))
+  # wmy2017Oct13 -- create NPAG utilities module
+  NPAGutils <- shQuote(normalizePath(list.files(fortSource,
+         pattern = paste(prefix, "npag_utils", sep = ""), full.names = T)))
+  Cutils <- shQuote(normalizePath(list.files(fortSource,
+         pattern = "c_utils.o", full.names = T)))
+  ModDir <- paste("-I", fortSource, "/", sep = "")
+  # ---------------- end wmy --------------
 
   #generate names of files that will be created
   prepFileName <- switch(type, NPAG = "np_prep", IT2B = "it_prep", ERR = "err_prep")
@@ -255,13 +273,33 @@
   prepcompile <- sub("<exec>", prepFileName, compiler[1])
   prepcompile <- sub("<files>", prepfiles, prepcompile, fixed = T)
   enginecompile <- sub("<exec>", runFileName, compiler[1 + as.numeric(parallel)])
-  enginecompile <- sub("<files>", enginefiles, enginecompile, fixed = T)
+  
+  
+  
+ # MN code is this line: 
+ # enginecompile <- sub("<files>", enginefiles, enginecompile, fixed = T)
+ # wmy2017Oct13 -- ODEsolver ("engine") included in compile statement
+  # wmy2018Sep18 -- NPAGutils included in compile statement
+  if ((type == "NPAG") || (type == "IT2B")) {
+    if (beta == T) {
+      enginecompile <- sub( "<files>"
+        , paste(ModDir, Cutils, NPAGutils, enginefiles, ODEsolver, sep = " ")
+        , enginecompile, fixed = T )
+    } else {
+      enginecompile <- sub("<files>", enginefiles, enginecompile, fixed = T)
+    }
+  } else {
+    # OLD CODE: enginecompile <- sub("<files>",enginefiles,enginecompile,fixed=T)
+    enginecompile <- sub("<files>", enginefiles, enginecompile, fixed = T)
+  }
+  # ------ end wmy  
+  
   #now substitute the file separator for inclusion in the batch file
   prepfiles <- gsub("/", rep, prepfiles)
   enginefiles <- gsub("/", rep, enginefiles)
-
+  
   #initiation statement  
-  if (OS == 1 | OS == 3) {
+    if (OS == 1 | OS == 3) {
     #Mac and Linux
     system(paste("echo '", type, " run initiated at", format(Sys.time(), "%H:%M on %Y %b %d."),
                  "\nPREP FILES:", prepfiles, "\nENGINE FILES:", enginefiles, "\n\n' > log.txt"))
@@ -482,6 +520,18 @@
       system(paste("chmod +x ", scriptFileName))
       #if (!batch) system(paste("openvt ", shQuote(paste(getwd(), "./", scriptFileName, sep = "")), sep = ""))
       system(paste0("./", scriptFileName, " &"))
+
+      # wmy was using this for some unremembered reason:
+      # if (!batch) {
+      #  # SuSE
+      #  # system(paste("openvt ",shQuote(paste(getwd(),"./",scriptFileName,sep="")),sep=""))
+      #  # Ubuntu16.04 uses gnome-terminal not openvt
+      #  system(paste("gnome-terminal -x ", shQuote(paste(getwd(), "/", scriptFileName, sep = "")), sep = ""))
+      #  # Ubuntu16.04 does not launch the *.html file
+      #  if (file.exists("NPAGreport.html")) {
+      #    system("xdg-open NPAGreport.html")
+      #  }
+      # }
     }
     setwd(currwd)
     return(outpath)
@@ -533,12 +583,125 @@
     timeFile <- file("time.txt", open = "a")
     writeLines(c("Unix", "Windows", "Linux")[OS], timeFile)
     writeLines(as.character(proc.time()[3]), timeFile)
+    # -------- 
 
     if (OS == 1 | OS == 3) {
       system("echo 1 > extnum")
       system("echo go > go")
-      system(paste(enginecompile, drivFileName, sep = " "))
-      system(paste("./", runFileName, " < go", sep = ""))
+      # wmy replaced following 2 lines w/long block that
+      # follow.
+      # system(paste(enginecompile, drivFileName, sep = " "))
+      # system(paste("./", runFileName, " < go", sep = ""))
+      # ---- Long remote run block -----
+
+      system("echo checking remoterun")
+      if (remoterun == T) {
+        system(paste("echo", "RemoteRun is", remoterun, remoteuser, remoteproject, remotecontact, sep = " "))
+      }
+      # wmy :: Run on server (server set up w/Pmetrics)
+      #
+      # Minimal command
+      # NPrun(model="model.txt", data="data.csv",
+      #   remoterun=T, remoteuser=user@server, remoteproject=name.of.project, remotecontact=email.address)
+      if (remoterun == T) {
+        # Copy remoteNPrun.sh to getwd()
+        pmsrc <- system.file("code", package = "Pmetrics")
+        getshscript <- paste("cp ", pmsrc, "/remoteNPrun.sh ", " .  ", sep = "", collapse = NULL)
+        system(getshscript)
+        system("sed 's/\r$//g' remoteNPrun.sh > tmp2.txt") # may need sed -i in linux ; this is for OSX
+        system("mv tmp2.txt remoteNPrun.sh")
+
+        # Run ./remoteNPrun.sh
+        # sample command line:
+        # ./remoteNPrun.sh 997 wyamada@lapkb.usc.edu Ashley model17.txt hcv_no2.csv walter.mas.yamada@gmail.com
+        # remoterun, remoteuser, remoteproject, remotecontact, are passed into .PMrun()
+        remoteruncomm <- paste("./remoteNPrun.sh", newdir, remoteuser, remoteproject, sep = " ", collapse = NULL)
+        # remoteruncomm <- paste(newdir, remoteuser, remoteproject, sep = " ", collapse = NULL)
+        remoteruncomm <- paste(remoteruncomm, model, data, remotecontact, sep = " ", collapse = NULL)
+
+        system(paste("echo ", currwd, "> remoterunargs.txt", sep = " "))
+        system(paste("echo ", newdir, ">> remoterunargs.txt", sep = " "))
+        system(paste("echo ", remoteuser, ">> remoterunargs.txt", sep = " "))
+        system(paste("echo ", remoteproject, ">> remoterunargs.txt", sep = " "))
+        system(paste("echo ", model, ">> remoterunargs.txt", sep = " "))
+        system(paste("echo ", data, ">> remoterunargs.txt", sep = " "))
+        system(paste("echo ", parallel, ">> remoterunargs.txt", sep = " "))
+        system(paste("echo ", overwrite, ">> remoterunargs.txt", sep = " "))
+        system(paste("echo ", remotecontact, ">> remoterunargs.txt", sep = " "))
+
+        fileConn <- file(paste(path.expand("~"), "/ClientInfo.txt", sep = ""))
+        writeLines(c(currwd, newdir, remoteuser, remoteproject, model, data, parallel, overwrite, remotecontact), fileConn)
+        close(fileConn)
+
+        if (OS == 1 | OS == 3) {
+          #Mac #linux
+          system(paste("chmod +x ", " remoteNPrun.sh"))
+          # system(paste("echo ", remoteruncomm, " >> remoterunargs", sep = " "))
+          # if(!batch)
+
+          # system(paste("open -a Terminal.app ",shQuote(paste(getwd(),"/","remoteNPrun.sh",sep="")), remoteruncomm,sep=" "))
+          # system(paste(paste("open -a Terminal.app ",shQuote("./remoteNPrun.sh"), sep=" "), remoteruncomm, sep=" "))
+          # system(paste("open -a Terminal.app ",shQuote("./remoteNPrun.sh"), remoteruncomm, sep=" "))
+          # The files(arglist) do not exist
+
+          # system(paste(paste("open -a Terminal.app ",shQuote(./remoteNPrun.sh),sep=" "), remoteruncomm, sep=" "))
+          # Error in shQuote(./remoteNPrun.sh) : object '.' not found
+
+          # system(paste("open -a Terminal.app ",shQuote(remoteruncomm), sep=" "))
+          # The file /Users/mas/lapk/pmetrics/greco_ashley/Runs/183/remoteNPrun.sh 183 \\
+          # wyamada@lapkb.usc.edu Ashley model22.txt hcv_12.csv walter.mas.yamada@gmail.com does not exist.
+
+          # system(paste("open -a Terminal.app ",remoteruncomm, sep=" "))
+          # system(paste("open -a Terminal.app ./remoteNPrun.sh ", remoteruncomm, sep=" "))
+          # The files /Users/mas/lapk/pmetrics/greco_ashley/Runs/184/184,
+          # /Users/mas/lapk/pmetrics/greco_ashley/Runs/184/wyamada@lapkb.usc.edu,
+          # /Users/mas/lapk/pmetrics/greco_ashley/Runs/184/Ashley, and
+          # /Users/mas/lapk/pmetrics/greco_ashley/Runs/184/walter.mas.yamada@gmail.com do not exist.
+
+          # This is stupid!!! Give up on this approach ... instead ... write a file w/remote params and have ./remoteNPrun read that file
+          # to get it's arguments. ... MT thinks better to use this approach ... so after searching found osascript
+
+          # system(paste("open -a Terminal.app", "./remoteNPrun.sh", sep=" "))
+
+          # example:
+          # system(paste("osascript -e 'tell application \"Terminal\" to do script \"", "echo remote run here","\"'",sep=" "))
+          #              dirbeforelaunch<-getwd()
+          #              system(paste("osascript -e 'tell application \"Terminal\" to do script \" cd", dirbeforelaunch, ";", remoteruncomm,"\"'",sep=" "))
+
+          # The osascript approach also has problems ... so going back to system call w/reading args from file ClientInfo.txt
+
+          # wmy2017 ubuntu vs. osx
+          operating.system <- getOSname()
+          if (operating.system == "osx") {
+            system(paste("open -a Terminal.app", "./remoteNPrun.sh", sep = " "))
+          }
+          if (operating.system == "linux") {
+            # Assume ubuntu, therefore gnome
+            system("gnome-terminal -e ./remoteNPrun.sh")
+          }
+        }
+
+        # TODO -- make this work in Windows and Linux, too; start by editing this code fragment lifted from the batch run above 
+        #          if (OS==2 & !batch){ #Windows
+        #            cat(paste("Launch ",scriptFileName,".bat in your working directory to execute the NPAG run.\n",sep=""))
+        #            outpath <- gsub("\\\\","/",outpath)
+        #          }
+        #          if (OS==3){ #Linux
+        #            system(paste("chmod +x ",scriptFileName))
+        #            if(!batch) system(paste("openvt ",shQuote(paste(getwd(),"./",scriptFileName,sep="")),sep=""))
+        #          }
+        # Return control to Rconsole
+        # stop() # stop() generates an error; so use:
+        return() # which returns the last calculated value, i.e. "ans" and exits PMrun()
+      } else {
+        # wmy (continue w/old code)
+
+        system(paste(enginecompile, drivFileName, sep = " "))
+        system(paste("./", runFileName, " < go", sep = ""))
+      }
+      # wmy end of remote run edits
+
+      # ---- long remote run block ends here -----
     } else {
       shell("echo 1 > extnum")
       shell("echo go > go")

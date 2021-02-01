@@ -93,8 +93,9 @@ NPrun <- function(model = "model.txt", data = "data.csv", run,
                   include, exclude, ode = -4, tol = 0.01, salt, cycles = 100,
                   indpts, icen = "median", aucint,
                   idelta = 12, prior,
-                  auto = T, intern = F, silent = F, overwrite = F, nocheck = F, parallel = NA, 
-                  alq = F, remote = F, server_address) {
+                  auto = T, intern = F, silent = F, overwrite = F, nocheck = F, parallel = NA
+                  , alq = F, remote = F, server_address
+                  , remoterun,remoteuser,remoteproject,remotecontact) {
 
   if (missing(run)) run <- NULL
   if (missing(include)) include <- NULL
@@ -104,6 +105,11 @@ NPrun <- function(model = "model.txt", data = "data.csv", run,
   if (missing(aucint)) aucint <- NULL
   if (missing(prior)) prior <- NULL
   if (missing(server_address)) server_address <- getPMoptions("server_address")
+  if(missing(remoterun)) remoterun <- F
+  if(missing(remoteuser)) remoteuser <- "you@your.server"
+  if(missing(remoteproject)) remoteproject <- "shortNameOfProjectWithNoSpecialCharacters"
+  if(missing(remotecontact)) remotecontact <- "yourEmailAddress" 
+  
   batch <- F
   if (remote == T) {
     return(.PMremote_run(model = model, data = data, server_address = server_address, run, overwrite))
@@ -113,8 +119,11 @@ NPrun <- function(model = "model.txt", data = "data.csv", run,
           indpts = indpts, icen = icen, aucint = aucint,
           idelta = idelta, prior = prior,
           auto = auto, intern = intern, silent = silent, overwrite = overwrite, nocheck = nocheck, parallel = parallel, batch = batch,
-          alq = alq))
-
+          alq = alq
+          , remoterun=remoterun,remoteuser=remoteuser,remoteproject=remoteproject,remotecontact=remotecontact
+          ))
+    # wmy had in it2bfunc...:
+    # outpath <- .PMrun(...); return(outpath)
   }
 
 }
