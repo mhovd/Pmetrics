@@ -8,7 +8,6 @@
 
 
 PMbuild <- function(skipRegistration = F) {
-
   if (.check_and_install_gfortran(skipRegistration)) {
 
     currwd <- getwd()
@@ -27,6 +26,9 @@ PMbuild <- function(skipRegistration = F) {
 
     # }
 
+    ODEsolver <- c("dvode_v1.f90") # stand alone package, w/module included in f90 file
+    NPAGutils <- c("npag_utils.f90") # see detailed useage notes about line 80 below
+
     compiler <- PMFortranConfig()
     #try again just in case redefined
     compiler <- PMFortranConfig()
@@ -43,7 +45,9 @@ PMbuild <- function(skipRegistration = F) {
     #compile new files
     setwd(sourcedir)
     if (!file.exists(destdir)) dir.create(destdir, showWarnings = F)
-    PMfiles <- data.frame(filename = as.character(c("NPprep", "NPeng", "ITprep", "ITeng", "ITerr", "SIMeng", "DOprep", "DOeng", "mb2csv")))
+    PMfiles <- data.frame(filename = as.character(c("NPprep"
+    , "NPeng", "ITprep", "ITeng", "ITerr", "SIMeng"
+    , "DOprep", "DOeng", "mb2csv")))
     PMfiles$path <- sapply(PMfiles$filename,
    function(x) shQuote(
     list.files(
@@ -51,35 +55,114 @@ PMbuild <- function(skipRegistration = F) {
     )
   ))
 
+# Create ODEsolver object files (serial and parallel) -----------------
+  serialCommand <- sub("<exec>", paste("s", "ODEsolver", ".o -c", sep = ""), compiler[1])
+  serialCommand <- sub("<files>", ODEsolver, serialCommand)
+  serialFortstatus <- suppressWarnings(system(serialCommand, intern = T, ignore.stderr = F))
+  if (parallel) {
+    parallelCommand <- sub("<exec>", paste("p", "ODEsolver", ".o -c", sep = ""), compiler[2])
+    parallelCommand <- sub("<files>", ODEsolver, parallelCommand)
+    parallelFortstatus <- suppressWarnings(system(parallelCommand, intern = T, ignore.stderr = F))
+    if (!is.null(attr(parallelFortstatus, "status"))) {
+      unlink(switch(OS, "~/.config/Pmetrics",
+                    paste(Sys.getenv("APPDATA"), "\\Pmetrics", sep = ""),
+                    "~/.config/Pmetrics"), recursive = T)
+      stop(paste("\nThere was an error compiling "
+        , ODEsolver
+        , ".\nDid you select the right fortran compiler?  "
+        , "If yes, try reinstalling fortran.\nFor gfortran, "
+        , "log into www.lapk.org and access system-specific "
+        , "tips on the Pmetrics installation page (step 5).\n", sep = ""))
+    }
+  }
 
+  # Create C object files (serial OR parallel) -----------------
+  # Try to remove the following gcc, it is from the first time that
+  # J&W tried to envelope emint in a DLL and we decided to use a 
+  # different approach.
+  system(paste("gcc -c c_utils.c", sep =  " "), intern = T, ignore.stderr = F)
+
+  # Create NPAGutils module ---------------------------------------------
+  serialCommand <- sub("<exec>", paste("s", "npag_utils", ".o -c", sep = ""), compiler[1])
+  serialCommand <- sub("<files>", NPAGutils, serialCommand);
+  serialCommand
+  serialFortstatus <- suppressWarnings(system(serialCommand, intern = T, ignore.stderr = F))
+  if (parallel) {
+    parallelCommand <- sub("<exec>", paste("p", "npag_utils", ".o -c", sep = ""), compiler[2])
+    parallelCommand <- sub("<files>", NPAGutils, parallelCommand);
+    parallelCommand
+    parallelFortstatus <- suppressWarnings(system(parallelCommand, intern = T, ignore.stderr = F))
+    if (!is.null(attr(parallelFortstatus, "status"))) {
+      unlink(switch(OS, "~/.config/Pmetrics",
+                    paste(Sys.getenv("APPDATA"), "\\Pmetrics", sep = ""),
+                    "~/.config/Pmetrics"), recursive = T)
+      stop(paste("\nThere was an error compiling "
+        , NPAGutils
+        , ".\nDid you select the right fortran compiler?  "
+        , "If yes, try reinstalling fortran.\nFor gfortran, "
+        , "log into www.lapk.org and access system-specific "
+        , "tips on the Pmetrics installation page (step 5).\n", sep = ""))
+    }
+  }
+
+  # Compile dot-o files ---------------------------------------------
+  # Note: The above blocks make npag_utils.mod and compiles snpag_utils.o,
+  #   pnpag_utils.o, sODEsolver.o and pODEsolver.o.  All five files will
+  #   be moved to the compiled fortran directory (which is for most installations
+  #   ~/.config/Pmetrics/compiledFortran/) along w/the below compiled engines.
+  # Note: To compile the engines below, all you need are the *.mod referenced
+  #   by USE statements in the Fortran code  ...
+  # Note: ... But to run the code, you will have to link the s- or p- .o files
+  #   to the engine. That could be done below, but it is easier to link them
+  #   at the same time the model file is linked to the engine, in PMrun().
+  # Note: ... with one exception: mb2csv is a standalone program, not 
+  #   requiring linking later.  So for that program, linking is done here.
+
+# Note: Transitioning to "use npag_utils" some program do NOT use npag_utils,
+#  other do, but fall into two categories: run and prep. Prep programs will
+#  not call the GET*, DIFFEQ, JACOB, DVODE, subroutines referenced from 
+#  SimConc and USERANAL -- so these programs have dummy routines in them
+#  IF they use npag_utils ELSE they will not link npag_utils.
+#  TODO: make two npag_utils -- one for prep, and one for run.
+#
     for (i in 1:nrow(PMfiles)) {
       cat(paste("\nCompiling ", i, " of ", nrow(PMfiles), ": ", PMfiles$filename[i], "...", sep = ""))
       flush.console()
-      if (PMfiles$filename[i] %in% c("DOprep", "mb2csv")) {
+      if (PMfiles$filename[i] %in% c("mb2csv")) { # "DOprep"
         #list of compiled and linked files
-        serialCommand <- sub("<exec>", paste(PMfiles$filename[i], ".exe", sep = ""), compiler[1])
-        serialCommand <- sub("<files>", PMfiles$path[i], serialCommand)
+        serialCommand <- sub("<exec>", paste(PMfiles$filename[i], ".exe"
+        , sep = ""), compiler[1])
+      } else if (PMfiles$filename[i] %in% c("NPeng")) {
+      serialCommand <- sub("<exec>", paste("s", PMfiles$filename[i]
+         , ".o -c", sep = ""), compiler[1])
       } else {
-        serialCommand <- sub("<exec>", paste("s", PMfiles$filename[i], ".o -c", sep = ""), compiler[1])
-        serialCommand <- sub("<files>", PMfiles$path[i], serialCommand)
+        serialCommand <- sub("<exec>", paste("s", PMfiles$filename[i]
+        , ".o -c", sep = ""), compiler[1])
       }
-      serialFortstatus <- suppressWarnings(system(serialCommand, intern = T, ignore.stderr = F))
+      serialCommand <- sub("<files>", PMfiles$path[i], serialCommand)
+      #
+      serialFortstatus <- suppressWarnings(system(serialCommand
+      , intern = T, ignore.stderr = F))
       if (!is.null(attr(serialFortstatus, "status"))) {
         unlink(switch(OS, "~/.config/Pmetrics",
                     paste(Sys.getenv("APPDATA"), "\\Pmetrics", sep = ""),
                     "~/.config/Pmetrics"), recursive = T)
-        stop(paste("\nThere was an error compiling ", PMfiles$filename[i], ".\nDid you select the right fortran compiler?  If yes, try reinstalling fortran.\nFor gfortran, log into www.lapk.org and access system-specific tips on the Pmetrics installation page (step 5).\n", sep = ""))
+        stop(paste("\nThere was an error compiling ", PMfiles$filename[i]
+        , ".\nDid you select the right fortran compiler?  If yes, try reinstalling fortran.\nFor gfortran, log into www.lapk.org and access system-specific tips on the Pmetrics installation page (step 5).\n", sep = ""))
       }
       if (i == 2 & parallel) {
         # parallel compilation for NPAG only
-        parallelCommand <- sub("<exec>", paste("p", PMfiles$filename[i], ".o -c", sep = ""), compiler[2])
+        parallelCommand <- sub("<exec>", paste("p", PMfiles$filename[i]
+        , ".o -c", sep = ""), compiler[2])
         parallelCommand <- sub("<files>", PMfiles$path[i], parallelCommand)
-        parallelFortstatus <- suppressWarnings(system(parallelCommand, intern = T, ignore.stderr = F))
+        parallelFortstatus <- suppressWarnings(system(parallelCommand
+        , intern = T, ignore.stderr = F))
         if (!is.null(attr(parallelFortstatus, "status"))) {
           unlink(switch(OS, "~/.config/Pmetrics",
                       paste(Sys.getenv("APPDATA"), "\\Pmetrics", sep = ""),
                       "~/.config/Pmetrics"), recursive = T)
-          stop(paste("\nThere was an error compiling ", PMfiles$filename[i], ".\nDid you select the right fortran compiler?  If yes, try reinstalling fortran.\nFor gfortran, log into www.lapk.org and access system-specific tips on the Pmetrics installation page (step 5).\n", sep = ""))
+          stop(paste("\nThere was an error compiling ", PMfiles$filename[i]
+          , ".\nDid you select the right fortran compiler?  If yes, try reinstalling fortran.\nFor gfortran, log into www.lapk.org and access system-specific tips on the Pmetrics installation page (step 5).\n", sep = ""))
         }
       }
 
