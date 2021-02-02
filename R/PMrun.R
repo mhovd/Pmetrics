@@ -219,7 +219,7 @@
 
   OS <- getOS() #1 Mac, 2 Windows, 3 Linux
 
-  fortSource <- paste(system.file("", package = "Pmetrics"), "compiledFortran", sep = "/")
+  fortSource <- paste(system.file("", package = "Pmetrics"), "compiledFortran", sep = "")
   #TODO: change this
   if (!file.exists(fortSource)) {
     PMbuild()
@@ -259,6 +259,8 @@
   ModDir <- paste("-I", fortSource, "/", sep = "")
   # ---------------- end wmy --------------
 
+
+
   #generate names of files that will be created
   prepFileName <- switch(type, NPAG = "np_prep", IT2B = "it_prep", ERR = "err_prep")
   runFileName <- switch(type, NPAG = "np_run", IT2B = "it_run", ERR = "err_run")
@@ -271,7 +273,8 @@
 
   #generate the compile statements  
   prepcompile <- sub("<exec>", prepFileName, compiler[1])
-  prepcompile <- sub("<files>", prepfiles, prepcompile, fixed = T)
+  # prepcompile <- sub("<files>", prepfiles, prepcompile, fixed = T)
+  prepcompile <- sub("<files>", paste(ModDir, Cutils, NPAGutils, prepfiles, sep = " "), prepcompile, fixed = T)
   enginecompile <- sub("<exec>", runFileName, compiler[1 + as.numeric(parallel)])
   
   
@@ -281,6 +284,7 @@
  # wmy2017Oct13 -- ODEsolver ("engine") included in compile statement
   # wmy2018Sep18 -- NPAGutils included in compile statement
   if ((type == "NPAG") || (type == "IT2B")) {
+    beta = T
     if (beta == T) {
       enginecompile <- sub( "<files>"
         , paste(ModDir, Cutils, NPAGutils, enginefiles, ODEsolver, sep = " ")
