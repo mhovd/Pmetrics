@@ -7,7 +7,7 @@
 
 
 
-PMbuild <- function(skipRegistration = F) {
+PMbuild <- function(skipRegistration = TRUE) {
 
   if (.check_and_install_gfortran(skipRegistration)) {
 
@@ -107,8 +107,8 @@ PMbuild <- function(skipRegistration = F) {
       cat("Pmetrics cannot find required compiled binary files.\n")
       if (system(sch_str[OS]) != 0) {
         cat("Pmetrics cannot detect gfortran and will attempt to download and install all components.\n")
-        input <- tolower(readline(prompt = "Do you agree? (Y/N)"))
-        if (substr(input, 1, 1) == "y") {
+        # input <- tolower(readline(prompt = "Do you agree? (Y/N)")) # Removed for headless setup
+        if (1 == 1) {
           if (.installOrUpdateGfortran()) {
             cat("Pmetrics has installed gfortran and will now compile required binary files.\n")
             cat("Pmetrics has anonymously registered your installation of this version.\nLAPKB does not collect or store any personal or identifying information.")
