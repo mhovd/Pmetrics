@@ -481,7 +481,7 @@
       #Linux
       system(paste("chmod +x ", scriptFileName))
       #if (!batch) system(paste("openvt ", shQuote(paste(getwd(), "./", scriptFileName, sep = "")), sep = ""))
-      system(paste0("./", scriptFileName, " &"))
+      system2(paste0("./", scriptFileName, " &", stdout = NULL))
     }
     setwd(currwd)
     return(outpath)
