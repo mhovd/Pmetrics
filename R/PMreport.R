@@ -38,7 +38,10 @@ PMreport <- function(wd, rdata, icen = "median", type = "NPAG", parallel = F) {
 
   #checkRequiredPackages("xtable")
 
+  # Checkpoint
+  cat("CHECKPOINT - BEFORE FIRST SETWD() IN PMREPORT \n")
   setwd(wd)
+  cat("CHECKPOINT - AFTER FIRST SETWD() IN PMREPORT \n")
   if (missing(rdata)) rdata <- makeRdata(wd, remote=F, reportType)
 
   #get elapsed time if available
