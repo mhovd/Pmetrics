@@ -641,8 +641,8 @@
     file.remove("time.txt")
 
     #make report
-    if (type == "NPAG" | type == "IT2B") { PMreport(paste(currwd, newdir, "outputs", sep = "/"), icen = icen, type = type, parallel = parallel) }
-    if (type == "ERR") { ERRreport(paste(currwd, newdir, "outputs", sep = "/"), icen = icen, type = type) }
+   # if (type == "NPAG" | type == "IT2B") { PMreport(paste(currwd, newdir, "outputs", sep = "/"), icen = icen, type = type, parallel = parallel) }
+   # if (type == "ERR") { ERRreport(paste(currwd, newdir, "outputs", sep = "/"), icen = icen, type = type) }
 
     #final clean up
     setwd(currwd)
