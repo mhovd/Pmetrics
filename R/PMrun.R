@@ -335,7 +335,7 @@
                                      paste(runFileName, " <go", sep = ""),
                                      paste("./", runFileName, " < go", sep = ""))[OS]
     PMscript[getNext(PMscript)] <- c("echo;echo Cleaning up....;echo", "echo. & echo Cleaning up.... & echo.", "echo;echo Cleaning up....;echo")[OS]
-    PMscript[getNext(PMscript)] <- c("stty -echo", "echo off", "stty -echo")[OS]
+    #    PMscript[getNext(PMscript)] <- c("stty -echo", "echo off", "stty -echo")[OS]
     #    PMscript[getNext(PMscript)] <- paste("mkdir ",newdir,sep="")
     PMscript[getNext(PMscript)] <- "mkdir inputs"
     PMscript[getNext(PMscript)] <- "mkdir outputs"
@@ -439,7 +439,7 @@
       PMscript[getNext(PMscript)] <- c(
         paste("open ", shQuote(paste(gsub("/", rep, outpath), "/", type, "report.html", sep = "")), " ; fi", sep = ""),
         paste("start ", shQuote(paste(type, "Report")), " ", shQuote(paste(gsub("/", rep, outpath), "\\", type, "report.html", sep = "")), ")", sep = ""),
-        paste("xdg-open ", shQuote(paste(gsub("/", rep, outpath), "/", type, "report.html", sep = "")), " ; fi", sep = "")
+        paste("fi", sep = "")
       )[OS]
     }
     #final clean up
