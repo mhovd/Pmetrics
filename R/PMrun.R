@@ -437,9 +437,9 @@
         paste(normalizePath(R.home("bin"), winslash = "/"), "/Rscript ", shQuote(reportscript), " ", shQuote(outpath), " ", icen, " ", parallel, sep = "")
       )[OS]
       PMscript[getNext(PMscript)] <- c(
-        paste(" ; fi", sep = ""),
-        paste(""),
-        paste(" ; fi", sep = "")
+        paste("fi", sep = ""),
+        paste("", sep = ""),
+        paste("fi", sep = "")
       )[OS]
     }
     #final clean up
