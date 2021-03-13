@@ -14,12 +14,14 @@ cat("Argument 4: ", commandArgs()[4], "\n")
 cat("Argument 5: ", commandArgs()[5], "\n")
 cat("Argument 6: ", commandArgs()[6], "\n")
 cat("Argument 7: ", commandArgs()[7], "\n")
-cat("Argument 8: ", commandArgs()[8], "\n")
-
+cat("Argument 8: ", commandArgs()[8, "\n")
+cat("Argument 9: ", commandArgs()[9], "\n")
+cat("Argument 10: ", commandArgs()[10], "\n")
+                                  
 # New argument indices
-wd <- commandArgs()[1]
-icen <- commandArgs()[2]
-parallel <- as.logical(commandArgs()[3])
+wd <- commandArgs()[8]
+icen <- commandArgs()[9]
+parallel <- as.logical(commandArgs()[10])
 
 cat("NPrepScript thinks this is the wd:\n", wd, "\n")
 
