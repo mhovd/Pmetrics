@@ -14,7 +14,7 @@ cat("Argument 4: ", commandArgs()[4], "\n")
 cat("Argument 5: ", commandArgs()[5], "\n")
 cat("Argument 6: ", commandArgs()[6], "\n")
 cat("Argument 7: ", commandArgs()[7], "\n")
-cat("Argument 8: ", commandArgs()[8, "\n")
+cat("Argument 8: ", commandArgs()[8], "\n")
 cat("Argument 9: ", commandArgs()[9], "\n")
 cat("Argument 10: ", commandArgs()[10], "\n")
                                   
